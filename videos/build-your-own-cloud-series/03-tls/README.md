@@ -51,11 +51,14 @@ openssl req -new \
 openssl req -in root-ca.csr -text -noout -verify
   
 ### Create the root certificate  
+#### (NOTE: `-notext` removes the cert information at the top of the .crt file. You can remove
+#### this option to view the full text and PEM cert in the .crt file)
 openssl ca -selfsign \
   -config root-ca.conf \
   -in root-ca.csr \
   -out root-ca.crt \
-  -extensions ca_ext
+  -extensions ca_ext \
+  -notext
   
 ### (OPTIONAL) Let's inspect the certificate
 openssl x509 -noout -text -in root-ca.crt
@@ -69,12 +72,15 @@ openssl req -new \
   -out sub-ca.csr \
   -keyout private/sub-ca.key
 
-### Create the subordinate certificate   
+### Create the subordinate certificate  
+#### (NOTE: `-notext` removes the cert information at the top of the .crt file. You can remove
+#### this option to view the full text and PEM cert in the .crt file) 
 openssl ca \
   -config root-ca.conf \
   -in sub-ca.csr \
   -out sub-ca.crt \
-  -extensions sub_ca_ext
+  -extensions sub_ca_ext \
+  -notext
   
 ### (OPTIONAL) Let's inspect the certificate
 openssl x509 -noout -text -in sub-ca.crt
@@ -89,11 +95,14 @@ openssl req -new \
   -keyout private/heavymetalcloud-encrypted.lan.key
   
 ### Create the leaf certificate    
+#### (NOTE: `-notext` removes the cert information at the top of the .crt file. You can remove
+#### this option to view the full text and PEM cert in the .crt file)
 openssl ca \
   -config sub-ca.conf \
   -in heavymetalcloud.lan.csr \
   -out heavymetalcloud.lan.crt \
-  -extensions server_ext  
+  -extensions server_ext \
+  -notext
   
 ### (OPTIONAL) Let's inspect the certificate
 openssl x509 -noout -text -in heavymetalcloud.lan.crt
