@@ -1,0 +1,95 @@
+#### This section would go in your values.yaml file
+
+customLdifFiles:
+  00-root.ldif: |-
+    #### Referenced from: https://www.zytrax.com/books/ldap/ch5/
+
+    ## dcObject is an AUXILLIARY objectclass and MUST
+    ## have a STRUCTURAL objectclass (organization in this case)
+    # this is an ENTRY sequence and is preceded by a BLANK line
+
+    dn: dc=heavymetalcloud,dc=lan
+    dc: heavymetalcloud
+    description: Heavy Metal Cloud, LLC is an organization for
+      building light-weight cloud infrastructure at a client's data
+      center or on premises.
+    objectClass: dcObject
+    objectClass: organization
+    o: Heavy Metal Cloud, LLC
+  01-people.ldif: |-
+    ## FIRST Level hierarchy - people
+    ## uses mixed upper and lower case for objectclass
+    # this is an ENTRY sequence and is preceded by a BLANK line
+    
+    dn: ou=people, dc=heavymetalcloud,dc=lan
+    ou: people
+    description: All people in organisation
+    objectclass: organizationalunit
+    
+    ## SECOND Level hierarchy
+    ## ADD a single entry under FIRST (people) level
+    # this is an ENTRY sequence and is preceded by a BLANK line
+    # the ou: Human Resources is the department name
+    
+    dn: cn=Tyler Durden,ou=people,dc=heavymetalcloud,dc=lan
+    objectclass: inetOrgPerson
+    cn: Tyler Durden
+    cn: Tyler H. Durden
+    cn: Big T Nickname
+    sn: durden
+    uid: tdurden
+    userpassword: password
+    homephone: 555-111-2222
+    mail: tdurden@heavymetalcloud.lan
+    mail: t.durden@heavymetalcloud.lan
+    description: Movie guy
+    ou: Information Technology
+  02-group.ldif: |-
+    ##### Groups
+    # create FIRST Level groups branch
+    
+    dn: ou=groups,dc=heavymetalcloud,dc=lan
+    objectclass: organizationalunit
+    ou: groups
+    description: generic groups branch
+    
+    # create the itpeople entry under groups
+    
+    dn: cn=itgroup,ou=groups,dc=heavymetalcloud,dc=lan
+    objectclass: groupofnames
+    cn: itgroup
+    description: IT Group
+    member: cn=Tyler Durden,ou=people,dc=heavymetalcloud,dc=lan
+    member: cn=Heavy MetalUser,ou=people,dc=heavymetalcloud,dc=lan
+    
+    # create the writeonly entry under groups
+    
+    dn: cn=writeonly,ou=groups,dc=heavymetalcloud,dc=lan
+    objectclass: groupofnames
+    cn: writeonly
+    description: Write Only group
+    member: cn=Tyler Durden,ou=people,dc=heavymetalcloud,dc=lan
+
+### Reference
+## https://www.zytrax.com/books/ldap/ch5/step2.html
+### https://github.com/jp-gouin/helm-openldap/issues/211#issuecomment-2435858080
+### https://www.openldap.org/doc/admin24/access-control.html
+### For the first entry used for config database: https://serverfault.com/a/744033
+customAcls: |-
+  dn: olcDatabase={2}mdb,cn=config
+  changetype: modify
+  replace: olcAccess
+  olcAccess: {0}to *
+    by dn.exact=gidNumber=0+uidNumber=1001,cn=peercred,cn=external,cn=auth manage
+    by * break
+  olcAccess: {1}to attrs=userPassword,shadowLastChange
+    by self write
+    by group.exact="cn=itgroup,ou=groups,dc=heavymetalcloud,dc=lan" write
+    by anonymous auth by * none
+  olcAccess: {2}to *
+    by group.exact="cn=writeonly,ou=groups,dc=heavymetalcloud,dc=lan" write
+    by group.exact="cn=itgroup,ou=groups,dc=heavymetalcloud,dc=lan" manage
+    by dn="cn=Tyler Durden,ou=people,dc=heavymetalcloud,dc=lan" manage
+    by dn.children="ou=people,dc=heavymetalcloud,dc=lan" search
+    by self read
+    by * none

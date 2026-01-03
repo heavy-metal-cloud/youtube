@@ -10,6 +10,9 @@ I will be using this to show the installation process of Operating systems for m
 > - [https://mtlynch.io/tinypilot/#how-to-build-your-own-tinypilot](https://mtlynch.io/tinypilot/#how-to-build-your-own-tinypilot)
     >)
 
+Check out my YouTube Channel for more videos and content!
+- [https://www.youtube.com/@HeavyMetalCloud](https://www.youtube.com/@HeavyMetalCloud)
+
 ## Hardware Dependencies
 To build out the Tiny Pilot you will need a few things. These are listed in the links in the reference section above, but
 I will also cover the hardware I'm using:

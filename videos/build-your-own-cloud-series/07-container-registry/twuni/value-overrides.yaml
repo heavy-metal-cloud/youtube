@@ -1,0 +1,105 @@
+replicaCount: 1
+
+image:
+  repository: registry
+  tag: 2.8.1
+  pullPolicy: IfNotPresent
+
+service:
+  name: registry
+  type: ClusterIP
+  port: 5000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  path: /
+  # Used to create an Ingress record.
+  hosts:
+    - registry.heavymetalcloud.lan
+  annotations:
+    # This setting is used to avoid HTTP 413 for large uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+   # kubernetes.io/ingress.class: nginx
+  # kubernetes.io/tls-acme: "true"
+  labels: {}
+  tls:
+   - secretName: heavymetal-cert-secret
+     hosts:
+       - registry.heavymetalcloud.lan
+
+resources:
+   limits:
+    cpu: 100m
+    memory: 128Mi
+   requests:
+    cpu: 100m
+    memory: 128Mi
+
+persistence:
+  accessMode: 'ReadWriteOnce'
+  enabled: true
+  size: 20Gi
+  storageClass: 'longhorn'
+
+# set the type of filesystem to use: filesystem, s3
+storage: filesystem
+
+# Set this to name of secret for tls certs
+# tlsSecretName: registry.docker.example.com
+secrets:
+  haSharedSecret: "heavymetal-cert-secret"
+  htpasswd: ""  ##### <------ Put your htpasswd here! Use `htpasswd -B -b -c /home/hduser/auth/htpasswd some-user some-password`
+
+
+configData:
+  version: 0.1
+  log:
+    fields:
+      service: registry
+  ### You can Proxy (mirror) public registries using the `proxy` -> `remoteurl` setting below.
+  proxy:
+    enabled: true
+    remoteurl: https://registry-1.docker.io
+  storage:
+    cache:
+      blobdescriptor: inmemory
+  http:
+    addr: :5000
+    headers:
+      X-Content-Type-Options: [nosniff]
+    debug:
+      addr: :5001
+      prometheus:
+        enabled: false
+        path: /metrics
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 60
+  targetMemoryUtilizationPercentage: 60 # available only on Kubernetes ≥1.23 [required "autoscaling/v2"]
+  behavior: {} # available only on Kubernetes ≥1.23 [required "autoscaling/v2"]
+#   scaleDown:
+#     stabilizationWindowSeconds: 300
+#     policies:
+#     - type: Percent
+#       value: 100
+#       periodSeconds: 15
+#   scaleUp:
+#     stabilizationWindowSeconds: 0
+#     policies:
+#     - type: Percent
+#       value: 100
+#       periodSeconds: 15
+#     - type: Pods
+#       value: 4
+#       periodSeconds: 15
+#     selectPolicy: Max

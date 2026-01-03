@@ -15,6 +15,9 @@ Your network topology for this installation should look something like this:
 > simpler approach instead. This works for me, because I won't need a Firewall, just DNS and DHCP support. I was really hoping
 > to eliminate the upstream WIFI router, but it will have to stay in place, for now.)
 
+Check out my YouTube Channel for more videos and content!
+- [https://www.youtube.com/@HeavyMetalCloud](https://www.youtube.com/@HeavyMetalCloud)
+
 ## Hardware
 OPNSense should be able to run on a low-end mini computer.  This machine will need 1+ Network Card Interfaces (NIC)s.
 If you will be performing routing or using this device as a firewall, you will need at least two NICs.

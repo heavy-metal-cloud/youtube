@@ -18,6 +18,8 @@ The cert will have a chain of trust that includes three certificates:
 - Subordinate CA - (`sub-ca-conf`) - This is an intermediate cert that will sign the leaf certs. The issuer for this cert will be the Root CA.
 - Leaf Cert - (`heavymetalcloud.lan.conf`) - This will be the cert for my domain that I want to protect, `*.heavymetalcloud.lan`. This  cert will be issued by the subordinate cert.
 
+Check out my YouTube Channel for more videos and content!
+- [https://www.youtube.com/@HeavyMetalCloud](https://www.youtube.com/@HeavyMetalCloud)
 
 ## Create the certs
 ### Directory Setup
