@@ -22,7 +22,8 @@ On your server run the following command:
 ```shell
 # curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik --disable servicelb" INSTALL_K3S_VERSION=<VERSION> sh -s - server --cluster-init
 ### For example:
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik --disable servicelb" INSTALL_K3S_VERSION=v1.35.0+k3s1 sh -s - server --cluster-init 
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable traefik --disable servicelb" \
+  INSTALL_K3S_VERSION=v1.35.0+k3s1 sh -s - server --cluster-init 
 ```
 
 ### Copy the Kubeconfig into your home directory
