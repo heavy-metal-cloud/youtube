@@ -13,7 +13,7 @@ Use this method if you want a quick install and won't be using helm
 
 Run the following command:
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.6.0/deploy/longhorn.yaml
+kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.10.1/deploy/longhorn.yaml
 ```
 
 >(IMPORTANT!!!! You may have to update the `/etc/multipath.conf` mentioned in the troubleshooting section below if
@@ -39,7 +39,8 @@ I want just the `longhorn` storage class to be default, in my case. So, I remove
 `local-path` StorageClass, using the command below:
 
 ```shell
-kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
+kubectl patch storageclass \
+  local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
 ```
 
 ## Troubleshooting
