@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: registry
-  tag: 2.8.1
+  tag: 3.0.0
   pullPolicy: IfNotPresent
 
 service:
@@ -51,16 +51,16 @@ secrets:
   haSharedSecret: "heavymetal-cert-secret"
   htpasswd: ""  ##### <------ Put your htpasswd here! Use `htpasswd -B -b -c /home/hduser/auth/htpasswd some-user some-password`
 
+### You can Proxy (mirror) public registries using the `proxy` -> `remoteurl` setting below.
+proxy:
+  enabled: false
+  remoteurl: https://registry-1.docker.io
 
 configData:
   version: 0.1
   log:
     fields:
       service: registry
-  ### You can Proxy (mirror) public registries using the `proxy` -> `remoteurl` setting below.
-  proxy:
-    enabled: true
-    remoteurl: https://registry-1.docker.io
   storage:
     cache:
       blobdescriptor: inmemory

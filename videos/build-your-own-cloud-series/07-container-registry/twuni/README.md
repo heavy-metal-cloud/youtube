@@ -5,16 +5,12 @@
 Check out my YouTube Channel for more videos and content!
 - [https://www.youtube.com/@HeavyMetalCloud](https://www.youtube.com/@HeavyMetalCloud)
 
-## Create the namespace
-```shell
-kubectl create namespace container-registry
-```
-
 ## Create a password file for authentication to the Registry
 Run the following commands to create a password file in your home directory.  The contents of this file will then be used when running
 helm to add authentication to your Registry
-```
+```shell
 sudo apt install apache2-utils
+mkdir /home/hmuser/auth
 htpasswd -B -b -c /home/hmuser/auth/htpasswd some-user some-password
 
 ### If the command above doesn't work, try this instead:
@@ -28,7 +24,10 @@ docker run --entrypoint htpasswd httpd:2 -Bbn user password > ./htpasswd
 > details in the setup of a self-signed cert with included (bundled) CA cert.)
 
 ```shell 
-kubectl create secret tls heavymetal-cert-secret --cert=tls.crt --key=tls.key --namespace container-registry
+kubectl create namespace container-registry
+kubectl create secret tls heavymetal-cert-secret \
+    --cert=tls.crt --key=tls.key \
+    --namespace container-registry 
 ```
 
 ## Install Twuni via Helm
@@ -38,7 +37,7 @@ kubectl create secret tls heavymetal-cert-secret --cert=tls.crt --key=tls.key --
 > htpasswd in the overridden values.yaml file. This works.)
 
 ```shell
-helm repo add twuni https://helm.twun.io
+helm repo add twuni https://twuni.github.io/docker-registry.helm
 helm upgrade --install --namespace container-registry --values value-overrides.yaml \
   twuni twuni/docker-registry 
 ```
@@ -78,10 +77,10 @@ Run the following set of commands to remove an image from the container registry
 curl -X GET https://registry.heavymetalcloud.lan/v2/_catalog
 
 # Next, Find the 'Docker-Content-Digest' header value:
-curl -v -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -X HEAD https://registry.heavymetalcloud.lan/v2/<IMAGE_NAME_FROM_LAST_STEP>/manifests/<VERSION_GOES_HERE>
+curl -v -u <USERNAME>:<PASWORD> -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -X HEAD https://registry.heavymetalcloud.lan/v2/<IMAGE_NAME_FROM_LAST_STEP>/manifests/<VERSION_GOES_HERE>
 
 # Finally, using the 'Docker-Content-Digest' header, delete the image entry
-curl -X DELETE https://registry.heavymetalcloud.lan/v2/<IMAGE_NAME_FROM_LAST_STEP>/manifests/<DIGEST_GOES_HERE>
+curl -X DELETE -u <USERNAME>:<PASWORD> https://registry.heavymetalcloud.lan/v2/<IMAGE_NAME_FROM_LAST_STEP>/manifests/<DIGEST_GOES_HERE>
 ```
 
 ## Setup Kubernetes to use your Private Registry
