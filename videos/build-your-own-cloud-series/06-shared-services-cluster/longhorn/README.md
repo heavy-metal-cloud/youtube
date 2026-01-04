@@ -47,11 +47,14 @@ kubectl patch storageclass \
 ### Pod won't start due to filesystem errors
 If a pod doesn't start that uses a PVC, perform a `describe` and look at the events. You may see something
 like this:
+
+```
 - ` MountVolume.MountDevice failed for volume "pvc-2de0978b-adc5-4d5c-8137-123148341d58"  │
 │ : rpc error: code = Internal desc = format of disk "/dev/longhorn/pvc-2de0978b-adc5-4d5c-8137-123148341d58" failed: type:("ext4") target:("/var/lib/kubelet/plugins/ │
 │ kubernetes.io/csi/driver.longhorn.io/de6b.../globalmount") options:("defaults") errcode:(exit status 1) out │
 │ put:(mke2fs 1.46.4`
 - `/dev/longhorn/pvc-2de... is apparently in use by the system; will not make a filesystem here! `
+``` 
 
 This page has some details: [https://longhorn.io/kb/troubleshooting-volume-with-multipath/](https://longhorn.io/kb/troubleshooting-volume-with-multipath/)
 
