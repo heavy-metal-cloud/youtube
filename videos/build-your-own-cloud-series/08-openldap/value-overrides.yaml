@@ -147,53 +147,53 @@ pdb:
 
   ## Group to create and add list of user above
   ## Default set by bitnami image
-# group: readers
+  # group: readers
 
-# Custom openldap schema files used to be used in addition to default schemas
-# Note that the supplied files are sorted by name and inserted into 'LDAP_EXTRA_SCHEMAS' env var
-# after chart default schemas, allowing you to control the loading sequence.
-# customSchemaFiles:
-#   custom.ldif: |-
-#     # custom schema
-#   anothercustom.ldif: |-
-#     # another custom schema
+  # Custom openldap schema files used to be used in addition to default schemas
+  # Note that the supplied files are sorted by name and inserted into 'LDAP_EXTRA_SCHEMAS' env var
+  # after chart default schemas, allowing you to control the loading sequence.
+  # customSchemaFiles:
+  #   custom.ldif: |-
+  #     # custom schema
+  #   anothercustom.ldif: |-
+  #     # another custom schema
 
-## Existing configmap with custom ldif
-# Can't be use with customLdifFiles
-# Same format as customLdifFiles
-# customLdifCm: my-custom-ldif-cm
+  ## Existing configmap with custom ldif
+  # Can't be use with customLdifFiles
+  # Same format as customLdifFiles
+  # customLdifCm: my-custom-ldif-cm
 
-# Custom openldap configuration files used to override default settings
-# DO NOT FORGET to put the Root Organisation object as it won't be created while using customLdifFiles
-# customLdifFiles:
-#   00-root.ldif: |-
-#     # Root creation
-#     dn: dc=example,dc=org
-#     objectClass: dcObject
-#     objectClass: organization
-#     o: Example, Inc
-#   01-default-group.ldif: |-
-#     dn: cn=myGroup,dc=example,dc=org
-#     cn: myGroup
-#     gidnumber: 500
-#     objectclass: posixGroup
-#     objectclass: top
-#   02-default-user.ldif: |-
-#     dn: cn=Jean Dupond,dc=example,dc=org
-#     cn: Jean Dupond
-#     gidnumber: 500
-#     givenname: Jean
-#     homedirectory: /home/users/jdupond
-#     objectclass: inetOrgPerson
-#     objectclass: posixAccount
-#     objectclass: top
-#     sn: Dupond
-#     uid: jdupond
-#     uidnumber: 1000
-#     userpassword: {MD5}KOULhzfBhPTq9k7a9XfCGw==
+  # Custom openldap configuration files used to override default settings
+  # DO NOT FORGET to put the Root Organisation object as it won't be created while using customLdifFiles
+  # customLdifFiles:
+  #   00-root.ldif: |-
+  #     # Root creation
+  #     dn: dc=example,dc=org
+  #     objectClass: dcObject
+  #     objectClass: organization
+  #     o: Example, Inc
+  #   01-default-group.ldif: |-
+  #     dn: cn=myGroup,dc=example,dc=org
+  #     cn: myGroup
+  #     gidnumber: 500
+  #     objectclass: posixGroup
+  #     objectclass: top
+  #   02-default-user.ldif: |-
+  #     dn: cn=Jean Dupond,dc=example,dc=org
+  #     cn: Jean Dupond
+  #     gidnumber: 500
+  #     givenname: Jean
+  #     homedirectory: /home/users/jdupond
+  #     objectclass: inetOrgPerson
+  #     objectclass: posixAccount
+  #     objectclass: top
+  #     sn: Dupond
+  #     uid: jdupond
+  #     uidnumber: 1000
+  #     userpassword: {MD5}KOULhzfBhPTq9k7a9XfCGw==
 
-# Custom openldap ACLs
-# If not defined, the following default ACLs are applied:
+  # Custom openldap ACLs
+  # If not defined, the following default ACLs are applied:
   # customAcls: |-
   #   dn: olcDatabase={2}mdb,cn=config
   #   changetype: modify
@@ -241,41 +241,41 @@ customLdifFiles:
     # this is an ENTRY sequence and is preceded by a BLANK line
     # the ou: Human Resources is the department name
     
-    dn: cn=Tyler Durden,ou=people,dc=heavymetalcloud,dc=lan
+    dn: cn=Matt Metal,ou=people,dc=heavymetalcloud,dc=lan
     objectclass: inetOrgPerson
-    cn: Tyler Durden
-    cn: Tyler H. Durden
-    cn: Big T Nickname
-    sn: durden
-    uid: tdurden
-    userpassword: password
+    cn: Matt Metal
+    cn: Matt X. Metal
+    cn: Matt Metal Nickname
+    sn: metal
+    uid: matt
+    userpassword: p455word
     homephone: 555-111-2222
-    mail: tdurden@heavymetalcloud.lan
-    mail: t.durden@heavymetalcloud.lan
-    description: Movie guy
+    mail: matt@heavymetalcloud.lan
+    mail: matt.metal@heavymetalcloud.lan
+    description: The Heavy Metal Cloud Guy
     ou: Information Technology
     
-    dn: cn=Marla Singer,ou=people,dc=heavymetalcloud,dc=lan
+    dn: cn=Marla Metal,ou=people,dc=heavymetalcloud,dc=lan
     objectclass: inetOrgPerson
-    cn: Marla Singer
-    cn: Marla A. Singer
-    sn: singer
-    uid: msinger
-    userpassword: password
+    cn: Marla Metal
+    cn: Marla A. Metal
+    sn: metal
+    uid: marla
+    userpassword: p455word
     homephone: 555-111-2222
-    mail: msinger@heavymetalcloud.lan
-    mail: m.singer@heavymetalcloud.lan
-    description: Actress
+    mail: marla@heavymetalcloud.lan
+    mail: marla.metal@heavymetalcloud.lan
+    description: A made up user
     ou: Account Team    
     
-    dn: cn=Heavy MetalUser,ou=people,dc=heavymetalcloud,dc=lan
+    dn: cn=Admin Metal,ou=people,dc=heavymetalcloud,dc=lan
     objectclass: inetOrgPerson
-    cn: Heavy MetalUser
-    sn: metaluser
-    uid: hmuser
-    userpassword: password
+    cn: Admin Metal
+    sn: metal
+    uid: admin
+    userpassword: p455word
     homephone: 555-111-2222
-    mail: hmuser@heavymetalcloud.lan
+    mail: admin@heavymetalcloud.lan
     description: Admin
     ou: Administration
   02-group.ldif: |-
@@ -293,16 +293,16 @@ customLdifFiles:
     objectclass: groupofnames
     cn: itgroup
     description: IT Group
-    member: cn=Tyler Durden,ou=people,dc=heavymetalcloud,dc=lan
-    member: cn=Heavy MetalUser,ou=people,dc=heavymetalcloud,dc=lan
+    member: cn=Matt Metal,ou=people,dc=heavymetalcloud,dc=lan
+    member: cn=Admin Metal,ou=people,dc=heavymetalcloud,dc=lan
     
-    # create the writeonly entry under groups
+    # create the Read Only entry under groups
     
     dn: cn=readonly,ou=groups,dc=heavymetalcloud,dc=lan
     objectclass: groupofnames
     cn: readonly
     description: Read Only group
-    member: cn=Marla Singer,ou=people,dc=heavymetalcloud,dc=lan
+    member: cn=Marla Metal,ou=people,dc=heavymetalcloud,dc=lan
 
 ### These are permissions to read/write etc. to the LDAP tree for a specific group
 # REFERENCES:
@@ -323,7 +323,7 @@ customAcls: |-
   olcAccess: {2}to *
     by group.exact="cn=readonly,ou=groups,dc=heavymetalcloud,dc=lan" read
     by group.exact="cn=itgroup,ou=groups,dc=heavymetalcloud,dc=lan" write
-    by dn="cn=Heavy MetalUser,ou=people,dc=heavymetalcloud,dc=lan" manage
+    by dn="cn=Admin Metal,ou=people,dc=heavymetalcloud,dc=lan" manage
     by dn.children="ou=people,dc=heavymetalcloud,dc=lan" search
     by self read
     by * none
@@ -672,9 +672,9 @@ ltb-passwd:
       - "ssl-ldap2.heavymetalcloud.lan"
     ## Ingress cert
     tls:
-     - secretName: ldap-certs.heavymetalcloud.lan
-       hosts:
-       - ssl-ldap2.heavymetalcloud.lan
+      - secretName: ldap-certs.heavymetalcloud.lan
+        hosts:
+          - ssl-ldap2.heavymetalcloud.lan
     # ldap:
     # if you want to restrict search base tree for users instead of complete domain
     # searchBase: "ou=....,dc=mydomain,dc=com"
@@ -703,6 +703,6 @@ phpldapadmin:
       - phpldapadmin.heavymetalcloud.lan
     ## Ingress cert
     tls:
-     - secretName: ldap-certs.heavymetalcloud.lan
-       hosts:
-       - phpldapadmin.heavymetalcloud.lan
+      - secretName: ldap-certs.heavymetalcloud.lan
+        hosts:
+          - phpldapadmin.heavymetalcloud.lan
