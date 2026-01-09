@@ -248,7 +248,7 @@ customLdifFiles:
     cn: Matt Metal Nickname
     sn: metal
     uid: matt
-    userpassword: p455word
+    userpassword: password
     homephone: 555-111-2222
     mail: matt@heavymetalcloud.lan
     mail: matt.metal@heavymetalcloud.lan
@@ -261,7 +261,7 @@ customLdifFiles:
     cn: Marla A. Metal
     sn: metal
     uid: marla
-    userpassword: p455word
+    userpassword: password
     homephone: 555-111-2222
     mail: marla@heavymetalcloud.lan
     mail: marla.metal@heavymetalcloud.lan
@@ -273,7 +273,7 @@ customLdifFiles:
     cn: Admin Metal
     sn: metal
     uid: admin
-    userpassword: p455word
+    userpassword: password
     homephone: 555-111-2222
     mail: admin@heavymetalcloud.lan
     description: Admin
