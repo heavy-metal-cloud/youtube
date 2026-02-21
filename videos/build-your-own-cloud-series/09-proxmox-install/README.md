@@ -1,6 +1,11 @@
 # Proxmox Installation
+This document walks through a Proxmox installation on three physical servers. These servers
+will be the foundation of my bare metal cloud, used to host applications on Kubernetes.
 
 >(REFERENCE: [https://www.proxmox.com/en/proxmox-virtual-environment/get-started](https://www.proxmox.com/en/proxmox-virtual-environment/get-started))
+
+Check out my YouTube Channel for more videos and content!
+- [https://www.youtube.com/@HeavyMetalCloud](https://www.youtube.com/@HeavyMetalCloud)
 
 ## Create the Proxmox boot media
 ### Install Etcher
