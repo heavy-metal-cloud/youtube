@@ -1,303 +1,285 @@
 #!/usr/bin/env python3
 """
-Script to randomly modify weights in a .safetensors file with verbose output.
-Supports both floating-point and quantized integer models.
-Handles various safetensors versions and import paths.
+LLM Safetensor Weight Modifier Tool - Verified Version
+
+This script modifies weights within a .safetensor file based on specific criteria:
+- Target layers (by name)
+- Percentage of weights to modify per layer
+- A multiplier modifier applied to selected weights
+- Detailed logging with before/after weight examples
+
+It is designed for experimentation and includes robust logging to track changes.
 """
 
 import argparse
-import os
 import sys
+import logging
 import numpy as np
+from safetensors import safe_open
+from safetensors.numpy import save_file
+from typing import List, Dict, Tuple, Any
+
+# Configure Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s - %(name)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 
-def load_safetensors_module():
-    """
-    Attempt to import the safetensors module from different possible locations.
-    Returns (safe_open, save_file) functions or raises ImportError.
-    Ensures consistent return type of 2 values.
-    """
-    # Try standard import first (safetensors >= 0.3.x)
-    try:
-        from safetensors import safe_open as std_safe_open
-        from safetensors import save_file as std_save_file
-
-        def safe_open_wrapper(path, framework="numpy"):
-            return std_safe_open(path, framework=framework)
-
-        # Verify it works with context manager
-        test_obj = std_safe_open(os.devnull, framework="numpy")
-        if hasattr(test_obj, 'keys'):
-            return std_safe_open, std_save_file
-    except Exception:
-        pass
-
-
-    # Try alternative import path (safetensors.numpy for some environments)
-    try:
-        from safetensors.numpy import load_file as np_load_file
-        from safetensors.numpy import save_file as np_save_file
-
-        def safe_open_wrapper(path, framework="numpy"):
-            return np_load_file(path)
-
-        return safe_open_wrapper, np_save_file
-    except ImportError:
-        pass
-
-    # Try MLX-compatible path (for LM Studio/MLX environments)
-    try:
-        from safetensors import load_file as mlx_load
-        from safetensors import save_file as mlx_save
-
-        def safe_open_wrapper(path, framework="numpy"):
-            return mlx_load(path)
-
-        return safe_open_wrapper, mlx_save
-    except ImportError:
-        pass
-
-    # Fallback: try to find any working combination
-    try:
-        from safetensors import safe_open as fallback_safe_open
-        from safetensors.numpy import save_file as fallback_save
-
-        def safe_open_wrapper(path, framework="numpy"):
-            return fallback_safe_open(path, framework=framework)
-
-        return safe_open_wrapper, fallback_save
-    except ImportError:
-        pass
-
-    raise ImportError(
-        "\n\n❌ ERROR: safetensors library not found or incompatible.\n"
-        "Please install it using:\n"
-        "   pip install safetensors numpy\n\n"
-        f"Current Python path: {sys.executable}\n"
-        f"Python version: {sys.version}"
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Modify weights in an Open Weight LLM safetensor file.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
+    parser.add_argument("--input", "-i", required=True, type=str, help="Path to input .safetensor file.")
+    parser.add_argument("--output", "-o", default=None, type=str, help="Output path. If not provided, overwrites input.")
+    parser.add_argument("--layers", "-l", required=True, type=str, help="Comma-separated list of layer names to modify.")
+    parser.add_argument("--percent", "-p", type=float, default=1.0, help="Percentage (0-100) of weights to change. Default: 1.0")
+    parser.add_argument("--modifier", "-m", type=float, default=2.0, help="Multiplier applied to selected weights. Default: 2.0")
+    parser.add_argument("--seed", "-s", type=int, default=None, help="Random seed for reproducibility.")
+    parser.add_argument("--samples-per-layer", "-n", type=int, default=5, help="Number of weight change examples per layer. Default: 5")
 
-def get_dtype_limits(dtype):
-    """Returns min and max values for a numpy dtype."""
-    if np.issubdtype(dtype, np.floating):
-        return -np.inf, np.inf
+    return parser.parse_args()
 
-    try:
+
+def get_layer_stats(tensor: np.ndarray) -> Dict[str, Any]:
+    stats = {
+        "dtype": str(tensor.dtype),
+        "shape": tensor.shape,
+        "min": float(np.min(tensor)),
+        "max": float(np.max(tensor)),
+        "mean": float(np.mean(tensor)),
+        "std": float(np.std(tensor))
+    }
+    return stats
+
+
+def get_dtype_bounds(dtype: np.dtype) -> Tuple[float, float]:
+    if np.issubdtype(dtype, np.integer):
         info = np.iinfo(dtype)
-        return info.min, info.max
-    except ValueError:
+        return float(info.min), float(info.max)
+    elif np.issubdtype(dtype, np.floating):
         return -np.inf, np.inf
+    else:
+        return 0.0, 100.0
 
 
-def modify_weights_verbose(weights_dict, percentage, multiplier, verbose=True, max_print=50):
-    """
-    Iterate through tensors and randomly modify weights with optional verbose output.
+def modify_tensor(tensor: np.ndarray, percent: float, modifier: float, dtype_bounds: Tuple[float, float]) -> Tuple[np.ndarray, List[int], int]:
+    total_elements = tensor.size
+    num_changes = int(np.ceil(total_elements * (percent / 100.0)))
 
-    Args:
-        weights_dict (dict): Dictionary of tensor names to numpy arrays.
-        percentage (float): Percentage of total elements to modify (0-100).
-        multiplier (float): Factor to multiply modified weights by.
-        verbose (bool): Whether to print modification details.
-        max_print (int): Maximum number of modifications to print in detail.
+    if num_changes == 0:
+        return tensor, [], 0
 
-    Returns:
-        dict: Modified weights dictionary with stats.
-    """
-    total_elements = sum(w.size for w in weights_dict.values())
+    flat_indices = np.random.choice(total_elements, size=num_changes, replace=False)
+    modified_values = tensor.flatten().copy().astype(np.float64)
+    modified_values[flat_indices] *= modifier
 
-    if percentage <= 0 or total_elements == 0:
-        return weights_dict, {"total_modified": 0}
+    min_val, max_val = dtype_bounds
+    if not np.isinf(min_val):
+        modified_values = np.clip(modified_values, a_min=min_val, a_max=max_val)
 
-    target_modifications = int(total_elements * (percentage / 100.0))
-    modified_count = 0
+    result_tensor = modified_values.astype(tensor.dtype).reshape(tensor.shape)
+    return result_tensor, flat_indices.tolist(), num_changes
 
-    print(f"\n{'='*60}")
-    print(f"Starting weight modifications...")
-    print(f"Total elements in model: {total_elements:,}")
-    print(f"Target modifications: {target_modifications:,} ({percentage}%)")
-    print(f"Multiplier: {multiplier}")
-    print(f"{'='*60}\n")
 
-    for name, tensor in weights_dict.items():
-        original_dtype = tensor.dtype
-        min_val, max_val = get_dtype_limits(original_dtype)
+def log_weight_examples(layer_name: str, tensor_before: np.ndarray, tensor_after: np.ndarray, changed_flat_indices: List[int], modifier: float, sample_count: int = 5) -> None:
+    if not changed_flat_indices:
+        return
 
-        flat_tensor = tensor.flatten()
+    original_shape = tensor_before.shape
+    display_count = min(sample_count, len(changed_flat_indices))
 
-        # Calculate how many to modify from this tensor
-        remaining = target_modifications - modified_count
-        elements_in_tensor = flat_tensor.size
+    logger.info(f"📊 {display_count} Example Weight Changes for Layer '{layer_name}'")
+    logger.info("-" * 70)
+    logger.info(f"{'Index':<25} | {'Before Value':>15} | {'After Value':>15} | {'Change'}")
+    logger.info("-" * 70)
 
-        if remaining <= 0:
-            break
+    for i in range(display_count):
+        flat_idx = changed_flat_indices[i]
+        multi_dim_idx = np.unravel_index(flat_idx, original_shape)
+        idx_str = str(multi_dim_idx)
 
-        num_to_modify = min(remaining, elements_in_tensor)
+        old_val = float(tensor_before.flatten()[flat_idx])
+        new_val = float(tensor_after.flatten()[flat_idx])
 
-        selected_indices = np.random.choice(elements_in_tensor, size=num_to_modify, replace=False)
-        sorted_indices = np.sort(selected_indices)
+        if abs(old_val) > 1e-10:
+            pct_change = ((new_val - old_val) / abs(old_val)) * 100
+            sign = "+" if new_val >= old_val else ""
+            change_str = f"{sign}{pct_change:.2f}%"
+        else:
+            change_str = f"({new_val})"
 
-        # Create a working copy of this tensor
-        modified_tensor = np.array(tensor)
+        if len(idx_str) > 23:
+            idx_display = f"...{idx_str[-17:]}"
+        else:
+            idx_display = idx_str
 
-        print(f"\nTensor: {name}")
-        print(f"  Shape: {tensor.shape}, Dtype: {original_dtype}")
-        print(f"  Modifying {num_to_modify} out of {elements_in_tensor} elements...")
+        logger.info(f"{idx_display:<25} | {old_val:>15.8f} | {new_val:>15.8f} | {change_str}")
 
-        for i, idx in enumerate(sorted_indices):
-            original_value = modified_tensor.flat[idx]
+    logger.info("-" * 70)
 
-            if original_dtype in [np.int8, np.uint8, np.int16, np.uint16,
-                                  np.int32, np.uint32, np.int64, np.uint64]:
-                # Integer Logic: Multiply and Clamp to valid range
-                new_value = modified_tensor.flat[idx] * multiplier
 
-                if min_val != -np.inf:
-                    new_value = max(min_val, min(max_val, new_value))
-                
-                # Explicitly cast back to original integer dtype before assignment 
-                # to ensure safe storage and prevent float artifacts.
-                new_value = int(new_value) 
+def verify_weights_changed(input_path: str, output_path: str, layer_name: str, percent: float, modifier: float):
+    """Verify that weights were actually changed after saving."""
+    try:
+        with safe_open(input_path, framework="numpy") as f_in:
+            tensor_before = f_in.get_tensor(layer_name)
 
-            else:
-                # Float Logic: Just multiply
-                new_value = modified_tensor.flat[idx] * multiplier
+        with safe_open(output_path, framework="numpy") as f_out:
+            tensor_after = f_out.get_tensor(layer_name)
 
-            modified_tensor.flat[idx] = new_value
+        diff_count = np.sum(tensor_before != tensor_after)
+        total_elements = tensor_before.size
+        pct_changed = (diff_count / total_elements * 100) if total_elements > 0 else 0
 
-            # Record modification details for verbose output
-            if verbose and i < max_print:
-                print(f"    [{i+1}] Index {idx}: {original_value} → {new_value}")
+        logger.info(f"🔍 VERIFICATION: {layer_name}")
+        logger.info(f"   Elements changed: {diff_count} / {total_elements} ({pct_changed:.2f}%)")
 
-            elif verbose and i == max_print:
-                print(f"    ... ({remaining - num_to_modify + 1} more modifications not shown)")
+        if pct_changed < percent * 0.5:
+            logger.warning("⚠️  WARNING: Fewer weights changed than expected!")
+            return False
 
-        weights_dict[name] = modified_tensor
-        modified_count += len(sorted_indices)
+        logger.info("✅ VERIFIED: Weights were successfully modified and saved.")
+        return True
 
-    if verbose:
-        print(f"\n{'='*60}")
-        print(f"Modification Complete!")
-        print(f"Total elements modified: {modified_count:,}")
-        print(f"Total elements in model: {total_elements:,}")
-        print(f"Percentage modified: {(modified_count/total_elements)*100:.2f}%")
-        print(f"{'='*60}\n")
-
-    return weights_dict, {"total_modified": modified_count, "total_elements": total_elements}
-
+    except Exception as e:
+        logger.error(f"❌ Verification failed: {e}")
+        return False
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Randomly modify weights in a safetensors file with verbose output.",
-        epilog="""Examples:
-  python update-tensors-4.py --input-file model.safetensors --output-file modified_model.safetensors --percentage 10 --multiplier 2
-  python update-tensors-4.py -i model.safetensors -o modified_model.safetensors --quiet
-"""
-    )
+    args = parse_arguments()
 
-    # Input/Output files (now with two dashes)
-    parser.add_argument("--input-file", "-i", type=str, required=True,
-                        help="Path to the input .safetensors file")
-    parser.add_argument("--output-file", "-o", type=str, required=True,
-                        help="Path to save the modified .safetensors file")
+    if args.seed is not None:
+        np.random.seed(args.seed)
+        logger.info(f"Random seed set to {args.seed}")
 
-    # Modification parameters
-    parser.add_argument("--percentage", type=float, default=10.0,
-                        help="Percentage of total weights to modify (default: 10)")
-    parser.add_argument("--multiplier", type=float, default=2.0,
-                        help="Multiplier for weight modification magnitude (default: 2.0)")
+    requested_layers = [layer.strip() for layer in args.layers.split(',')]
+    logger.info(f"Target layers specified: {requested_layers}")
 
-    # Output control parameters
-    parser.add_argument("--verbose", action="store_true", default=True,
-                        help="Enable verbose output of modifications")
-    parser.add_argument("--quiet", action="store_true",
-                        help="Disable verbose output")
-    parser.add_argument("--max-prints", type=int, default=50,
-                        help="Maximum number of individual modification details to print (default: 50)")
+    if not args.output or args.output == "":
+        logger.warning("No output path provided. Overwriting input file.")
+        args.output = args.input
 
-    args = parser.parse_args()
-
-    # Validate percentage range
-    if not 0 <= args.percentage <= 100:
-        print("Error: Percentage must be between 0 and 100.")
-        sys.exit(1)
-
-    if not os.path.exists(args.input_file):
-        print(f"Error: Input file '{args.input_file}' does not exist.")
-        sys.exit(1)
-
-    # Load safetensors module with compatibility check
+    tensor_data = {}
     try:
-        safe_open, save_file = load_safetensors_module()
-        print("\n✓ Loaded safetensors successfully")
-
-        # Test loading and handle different return types (context manager vs direct dict)
-        test_obj = safe_open(args.input_file, framework="numpy")
-
-        if isinstance(test_obj, dict):
-            # Direct load (some versions return dict immediately)
-            print("Using direct dictionary load mode")
-            tensors = test_obj
-            metadata = {}
-        elif hasattr(test_obj, 'keys'):
-            # Context manager mode (standard API)
-            print("Using context manager load mode")
-            with safe_open(args.input_file, framework="numpy") as f:
-                if hasattr(f, 'metadata'):
-                    metadata = f.metadata()
-                else:
-                    metadata = {}
-                tensors = {key: f.get_tensor(key) for key in f.keys()}
-        else:
-            raise TypeError("Unexpected return type from safe_open")
-
+        with safe_open(args.input, framework="numpy") as f:
+            for key in f.keys():
+                tensor_data[key] = f.get_tensor(key)
     except Exception as e:
-        print(f"\n❌ Error loading safetensors module or file: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Failed to load safetensor file. Error: {e}")
         sys.exit(1)
 
-    # Warn user about risks
-    if args.verbose and not args.quiet:
-        print("⚠️  WARNING: Modifying weights will likely corrupt the model's functionality.")
-        print("Ensure you have a backup of the original file.\n")
+    available_layers = list(tensor_data.keys())
+    found_layers = []
+    missing_layers = []
 
-    verbose_output = args.verbose and not args.quiet
+    for req_layer in requested_layers:
+        if req_layer in available_layers:
+            found_layers.append(req_layer)
+        else:
+            matching_key = None
+            for key in available_layers:
+                if key.lower() == req_layer.lower():
+                    matching_key = key
+                    break
+            if matching_key:
+                found_layers.append(matching_key)
+                logger.warning(f"Found via case-insensitive match: '{req_layer}' → '{matching_key}'")
+            else:
+                missing_layers.append(req_layer)
 
-    # Perform modification
-    modified_tensors, stats = modify_weights_verbose(
-        tensors,
-        args.percentage,
-        args.multiplier,
-        verbose=verbose_output,
-        max_print=args.max_prints
-    )
+    if missing_layers:
+        logger.warning(f"Requested layers not found: {missing_layers}")
 
-    # Save the modified model
-    print(f"\nSaving to {args.output_file}...")
+    if not found_layers:
+        logger.error("No valid target layers found. Exiting.")
+        sys.exit(1)
+
+    total_elements_processed = 0
+    total_elements_changed = 0
+    layer_reports = []
+
+    for req_layer in requested_layers:
+        real_layer_name = None
+        if req_layer in available_layers:
+            real_layer_name = req_layer
+        else:
+            for key in available_layers:
+                if key.lower() == req_layer.lower():
+                    real_layer_name = key
+                    break
+
+        if not real_layer_name or real_layer_name not in tensor_data:
+            logger.warning(f"Skipping {req_layer} (no matching key found)")
+            continue
+
+        tensor_before = tensor_data[real_layer_name]
+        stats_before = get_layer_stats(tensor_before)
+
+        logger.info(f"\n🔧 Processing Layer: '{real_layer_name}'")
+        logger.info(f"Layer Stats (Before): dtype={stats_before['dtype']}, shape={stats_before['shape']}")
+
+        if np.issubdtype(tensor_before.dtype, np.integer):
+            min_bound, max_bound = get_dtype_bounds(tensor_before.dtype)
+            logger.warning(f"⚠️  Layer uses integer dtype ({tensor_before.dtype}). Values clipped to [{min_bound}, {max_bound}]")
+        else:
+            min_bound, max_bound = -np.inf, np.inf
+
+        tensor_after, changed_indices, count = modify_tensor(tensor_before, args.percent, args.modifier, (min_bound, max_bound))
+
+        # ✅ FIX: Assign modified tensor back to dictionary
+        tensor_data[real_layer_name] = tensor_after
+
+        stats_after = get_layer_stats(tensor_after)
+        logger.info(f"Layer Stats (After): min={stats_after['min']:.6f}, max={stats_after['max']:.6f}")
+
+        if changed_indices:
+            log_weight_examples(real_layer_name, tensor_before, tensor_after, changed_indices, args.modifier, sample_count=args.samples_per_layer)
+
+        total_elements_processed += tensor_before.size
+        total_elements_changed += count
+
+        layer_reports.append({
+            "name": real_layer_name,
+            "processed": tensor_before.size,
+            "changed": count
+        })
+
+    logger.info(f"\n💾 Saving modified safetensor to: {args.output}")
     try:
-        save_file(modified_tensors, args.output_file, metadata=metadata)
-
-        if verbose_output:
-            print("\n" + "="*60)
-            print("SUCCESS!")
-            print("="*60)
-            print(f"Output file: {args.output_file}")
-            print(f"Elements modified: {stats['total_modified']:,} / {stats['total_elements']:,}")
-            if stats['total_elements'] > 0:
-                pct = (stats['total_modified'] / stats['total_elements']) * 100
-                print(f"Modification rate: {pct:.2f}%")
-            print("="*60 + "\n")
-        else:
-            print("Successfully saved modified safetensors file.")
+        save_file(tensor_data, args.output)
+        logger.info("✅ File saved successfully.")
     except Exception as e:
-        print(f"\n❌ Error saving file: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"❌ Failed to save file. Error: {e}")
         sys.exit(1)
+
+    # Verify weights were actually changed
+    if len(found_layers) > 0 and args.input != args.output:
+        verify_weights_changed(args.input, args.output, found_layers[0], args.percent, args.modifier)
+
+    print("\n" + "="*80)
+    print("📈 EXPERIMENT SUMMARY REPORT")
+    print("="*80)
+    print(f"Input File:   {args.input}")
+    print(f"Output File:  {args.output}")
+    print(f"Modifier:     x{args.modifier:.2f}")
+    print(f"Percent Changed: {args.percent}%")
+    print("-"*80)
+
+    for report in layer_reports:
+        pct = (report['changed'] / report['processed']) * 100 if report['processed'] > 0 else 0
+        status_icon = "✅" if pct <= args.percent + 5 else "⚠️"
+        print(f"{status_icon} {report['name']:45s} | Processed: {report['processed']:8d} | Changed: {report['changed']:6d} ({pct:.2f}%)")
+
+    total_pct = (total_elements_changed / total_elements_processed * 100) if total_elements_processed > 0 else 0
+    print(f"{'TOTAL':^45s} | {total_elements_processed:8d} | {total_elements_changed:6d} ({total_pct:.2f}%)")
+    print("="*80 + "\n")
 
 
 if __name__ == "__main__":
     main()
-

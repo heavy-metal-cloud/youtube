@@ -1,12 +1,6 @@
 ## Poem
-Write a poem about the city of Detroit on a cold winter day.
+Write a poem about the city of Detroit
 
 ## Code
 Write a Java application using quarkus that calls a FHIR server.
 
-## FHIR
-Create a FHIR bundle using the following scenario: 
-A patient is entering an urgent care for a sore throat. 
-Include all the FHIR objects related to this encounter. 
-Also include claim objects. 
-Try to make all pricing and coding systems as realistic as possible.
