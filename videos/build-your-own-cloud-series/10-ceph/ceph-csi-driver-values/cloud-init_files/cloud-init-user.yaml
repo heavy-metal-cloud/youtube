@@ -1,0 +1,47 @@
+#cloud-config
+package_update: true
+packages:
+  - qemu-guest-agent
+  - iptables
+  - dnsutils
+  - iputils-ping
+runcmd:
+  - - systemctl
+    - enable
+    - '--now'
+    - qemu-guest-agent.service
+ca_certs:
+  remove_defaults: false
+
+  # Add your subordinate (intermediate) certificate (if you have one), followed by the CA Cert.
+  # REFERENCE: https://github.com/number5/cloud-init/blob/main/doc/examples/cloud-config-ca-certs.txt
+  trusted:
+    - |
+      -----BEGIN CERTIFICATE-----
+      CERTS_GO_HERE
+      -----END CERTIFICATE-----
+
+# Add your public key here. This will be used to allow for logins to the VM
+# REFERENCE: https://github.com/number5/cloud-init/blob/main/doc/examples/cloud-config-ssh-keys.txt
+ssh_authorized_keys:
+  - ssh-rsa SSH_PUB_KEY_HASH_GOES_HERE== hmuser@heavymetalcloud.lan
+
+### This is required for k3sup. It allows a user who as ssh'd in using a private key to run SUDO without a password.
+system_info:
+  default_user:
+    name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+# By default, the fingerprints of the authorized keys for the users
+# cloud-init adds are printed to the console. Setting
+# no_ssh_fingerprints to true suppresses this output.
+no_ssh_fingerprints: false
+
+# By default, (most) ssh host keys are printed to the console. Setting
+# emit_keys_to_console to false suppresses this output.
+ssh:
+  emit_keys_to_console: false
+
+#### (IMPORTANT!!!! Using the `password` setting is a security risk. It can be used to make initial troubleshooting easier in a Proof of Concept (POC) environment)
+#### (For anything other than a POC/prototyping environment, REMOVE this setting!!!!)
+#password: password

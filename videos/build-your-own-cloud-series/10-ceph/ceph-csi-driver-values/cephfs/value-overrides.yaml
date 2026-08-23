@@ -1,0 +1,25 @@
+csiConfig:
+  - clusterID: 997c1560-0623-40b5-be2d-cea2ba357bb7    # <--- Use your value from the 'ceph' command here
+    monitors:
+      - 192.168.3.4:6789    # <--- Use your value from the 'ceph' command here
+      - 192.168.3.5:6789    # <--- Use your value from the 'ceph' command here
+      - 192.168.3.6:6789    # <--- Use your value from the 'ceph' command here
+    cephFS:
+      subvolumeGroup: "csi"    # <--- Make sure you created this subvolumeGroup using the 'ceph fs subvolumegroup create` command
+secret:
+  name: csi-cephfs-secret
+  adminID: admin
+  adminKey: AQASJmpnkQgzMBAA/Lx29ahfBUG7Emk2ggVYqA==    # <--- Use your value from the 'ceph' command here
+  create: true
+storageClass:
+  create: true
+  name: k8s-cephfs
+  clusterID: 997c1560-0623-40b5-be2d-cea2ba357bb7      # <--- Use your value from the 'ceph' command here
+  # (required) CephFS filesystem name into which the volume shall be created
+  fsName: cephfs                 # <--- This should be the name of an existing CephFS volume.
+  reclaimPolicy: Delete
+  allowVolumeExpansion: true
+  volumeNamePrefix: "csi-k8s-"
+  provisionerSecret: csi-cephfs-secret
+  controllerExpandSecret: csi-cephfs-secret
+  nodeStageSecret: csi-cephfs-secret

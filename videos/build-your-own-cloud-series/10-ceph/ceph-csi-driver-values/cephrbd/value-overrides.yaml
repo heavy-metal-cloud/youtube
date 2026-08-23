@@ -1,0 +1,25 @@
+csiConfig:
+  - clusterID: 997c1560-0623-40b5-be2d-cea2ba357bb7    # <--- Use your value from the 'ceph' command here
+    monitors:
+      - 192.168.3.4:6789     # <--- Use your value from the 'ceph' command here
+      - 192.168.3.5:6789     # <--- Use your value from the 'ceph' command here
+      - 192.168.3.6:6789     # <--- Use your value from the 'ceph' command here
+secret:
+  name: csi-cephrbd-secret
+  userID: myPoolAdmin         # <--- This is the user you created with Pool access
+  userKey: AQCBV3dng1l9JhAAdscGgnno6npemADe7y570w==    # <--- Use your value from the 'ceph' command here
+  create: true
+storageClass:
+  create: true
+  name: k8s-cephrbd
+  annotations:
+    storageclass.kubesphere.io/supported-access-modes: '["ReadWriteOnce","ReadOnlyMany","ReadWriteMany"]'
+  clusterID: 997c1560-0623-40b5-be2d-cea2ba357bb7     # <--- Use your value from the 'ceph' command here
+  ###### NOTE!!!!! The following line is VERY important, you should enter your Ceph block pool name here
+  pool: ceph-pool-01
+  reclaimPolicy: Delete
+  allowVolumeExpansion: true
+  volumeNamePrefix: "csi-k8s-"
+  provisionerSecret: csi-cephrbd-secret
+  controllerExpandSecret: csi-cephrbd-secret
+  nodeStageSecret: csi-cephrbd-secret
